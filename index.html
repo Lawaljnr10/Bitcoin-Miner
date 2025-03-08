@@ -99,37 +99,7 @@
       font-style: italic;
       color: #FFD700;
     }
-    /* QR Modal Styles */
-    #qrModal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.8);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-    }
-    #qrModalContent {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      text-align: center;
-    }
-    #closeQrBtn {
-      margin-top: 10px;
-      padding: 8px 12px;
-      border: none;
-      border-radius: 4px;
-      background: #FFA500;
-      color: #1a1a1a;
-      cursor: pointer;
-    }
   </style>
-  <!-- Include qrcodejs Library -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
   <!-- Header & Coin Animation -->
@@ -200,14 +170,6 @@
     </table>
   </div>
 
-  <!-- QR Modal Container -->
-  <div id="qrModal" style="display:none;">
-    <div id="qrModalContent">
-      <div id="qrContainer"></div>
-      <button id="closeQrBtn">Close QR Code</button>
-    </div>
-  </div>
-
   <!-- Include Latest WalletConnect Ethereum Provider v2 (version 2.2.0) -->
   <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.2.0/dist/umd/index.min.js"></script>
 
@@ -258,24 +220,7 @@
       document.getElementById('boosterCount3').innerText = boosterCounts3[userAccount] || 0;
     }
 
-    // Function to show QR modal using qrcodejs
-    function showQrModal(uri) {
-      const qrModal = document.getElementById("qrModal");
-      qrModal.style.display = "flex";
-      new QRCode(document.getElementById("qrContainer"), {
-         text: uri,
-         width: 200,
-         height: 200,
-         colorDark : "#000000",
-         colorLight : "#ffffff",
-         correctLevel : QRCode.CorrectLevel.H
-      });
-      document.getElementById("closeQrBtn").addEventListener("click", () => {
-        qrModal.style.display = "none";
-      });
-    }
-
-    // Connect wallet handler: use WalletConnect v2 for mobile and injected provider for desktop
+    // Connect wallet handler: on mobile always use WalletConnect v2 with default QR modal
     document.getElementById('connectWalletBtn').addEventListener('click', async function() {
       if (isMobileDevice()) {
         try {
@@ -283,16 +228,13 @@
             projectId: "e2d5994d7d0b4125baf324894a6dcc98", // Your Infura Project ID
             relayUrl: "wss://relay.walletconnect.com",
             chains: [1],
-            showQrModal: false,
+            showQrModal: true,
             metadata: {
               name: "Bitcoin Miner",
               description: "A simulated Bitcoin mining DApp.",
               url: "https://minebitcoinminer.netlify.app",
               icons: ["https://upload.wikimedia.org/wikipedia/commons/4/46/Bitcoin.svg"]
             }
-          });
-          provider.on("display_uri", (uri) => {
-            showQrModal(uri);
           });
           await provider.enable();
           userAccount = provider.accounts[0].toLowerCase();
