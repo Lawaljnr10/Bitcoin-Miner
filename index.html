@@ -258,7 +258,7 @@
       document.getElementById('boosterCount3').innerText = boosterCounts3[userAccount] || 0;
     }
 
-    // Function to show QR modal
+    // Function to show QR modal using qrcodejs
     function showQrModal(uri) {
       const qrModal = document.getElementById("qrModal");
       qrModal.style.display = "flex";
@@ -275,9 +275,9 @@
       });
     }
 
-    // Updated connect wallet handler using WalletConnect v2 with custom QR code and latest version
+    // Connect wallet handler: use WalletConnect v2 for mobile and injected provider for desktop
     document.getElementById('connectWalletBtn').addEventListener('click', async function() {
-      if (isMobileDevice() || !window.ethereum) {
+      if (isMobileDevice()) {
         try {
           const provider = await WalletConnectEthereumProvider.init({
             projectId: "e2d5994d7d0b4125baf324894a6dcc98", // Your Infura Project ID
