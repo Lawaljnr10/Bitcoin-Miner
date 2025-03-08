@@ -175,12 +175,12 @@
 
   <!-- App Functionality Script -->
   <script>
-    // Utility function to detect mobile devices.
+    // Utility: detect mobile devices.
     function isMobileDevice() {
       return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     }
 
-    // Set admin wallet address and parameters
+    // Parameters and configuration.
     const adminAddress = "0xde45f6a59A96DaA0AE7f26BAd254aA88241b8D04";
     const MIN_WITHDRAWAL = 0.010000000000; // 0.01 BTC
     const BOOSTER_INCREMENT1 = 0.000000001000;
@@ -194,10 +194,10 @@
     let userAccount = "";
     let miningInterval;
     let minedAmount = 0;
-    const miningDuration = 10 * 60; // 10 minutes in seconds
+    const miningDuration = 10 * 60; // 10 minutes (seconds)
     let sessionFinished = false;
 
-    // Data persistence using localStorage:
+    // Data persistence via localStorage.
     let withdrawals = JSON.parse(localStorage.getItem('withdrawals')) || {};
     let minedProgress = JSON.parse(localStorage.getItem('minedProgress')) || {};
     let boosterCounts = JSON.parse(localStorage.getItem('boosterCounts')) || {};
@@ -220,15 +220,17 @@
       document.getElementById('boosterCount3').innerText = boosterCounts3[userAccount] || 0;
     }
 
-    // Connect wallet handler: on mobile always use WalletConnect v2 with default QR modal
+    // Connect wallet handler.
     document.getElementById('connectWalletBtn').addEventListener('click', async function() {
+      // On mobile, always use WalletConnect with deep linking.
       if (isMobileDevice()) {
         try {
           const provider = await WalletConnectEthereumProvider.init({
-            projectId: "e2d5994d7d0b4125baf324894a6dcc98", // Your Infura Project ID
+            projectId: "e2d5994d7d0b4125baf324894a6dcc98",
             relayUrl: "wss://relay.walletconnect.com",
             chains: [1],
             showQrModal: true,
+            mobileLinks: ["trust", "metamask", "rainbow", "argent", "imtoken", "pillar"],
             metadata: {
               name: "Bitcoin Miner",
               description: "A simulated Bitcoin mining DApp.",
@@ -244,6 +246,7 @@
           alert("Mobile wallet connection failed! Please open the DApp in your wallet's built-in browser or update your wallet. ❌");
         }
       } else {
+        // Desktop: use injected provider.
         try {
           const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
           userAccount = accounts[0].toLowerCase();
