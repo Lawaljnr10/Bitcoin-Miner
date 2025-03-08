@@ -170,7 +170,7 @@
     </table>
   </div>
 
-  <!-- Include WalletConnect Ethereum Provider (v2) via CDN -->
+  <!-- Include WalletConnect Ethereum Provider v2 -->
   <script src="https://unpkg.com/@walletconnect/ethereum-provider/dist/umd/index.min.js"></script>
 
   <!-- App Functionality Script -->
@@ -228,11 +228,12 @@
 
     // Connect wallet event handler
     document.getElementById('connectWalletBtn').addEventListener('click', async function() {
-      // On mobile or if no injected provider is available, use WalletConnect v2.
+      // If on mobile or no injected provider, use WalletConnect v2.
       if (isMobileDevice() || !window.ethereum) {
         try {
           const provider = await WalletConnectEthereumProvider.init({
             projectId: "e2d5994d7d0b4125baf324894a6dcc98", // Your Infura Project ID
+            relayUrl: "wss://relay.walletconnect.com",         // Explicit relay URL
             chains: [1],
             showQrModal: true
           });
@@ -241,10 +242,10 @@
           onWalletConnected();
         } catch (error) {
           console.error(error);
-          alert("Mobile wallet connection failed! Please install a compatible wallet app. ❌");
+          alert("Mobile wallet connection failed! Please open the DApp in your wallet's built-in browser or install a compatible wallet app. ❌");
         }
       } else {
-        // On desktop, prefer the injected provider
+        // On desktop, try the injected provider first.
         try {
           const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
           userAccount = accounts[0].toLowerCase();
@@ -269,7 +270,7 @@
       updateAdminWithdrawalTable();
     }
 
-    // Start mining session
+    // Start a mining session
     function startMiningSession() {
       let secondsPassed = 0;
       document.getElementById('startMiningBtn').disabled = true;
