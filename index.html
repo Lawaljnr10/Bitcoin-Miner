@@ -208,8 +208,8 @@
     </div>
   </div>
 
-  <!-- Include WalletConnect Ethereum Provider v2 -->
-  <script src="https://unpkg.com/@walletconnect/ethereum-provider/dist/umd/index.min.js"></script>
+  <!-- Include Latest WalletConnect Ethereum Provider v2 (version 2.2.0) -->
+  <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.2.0/dist/umd/index.min.js"></script>
 
   <!-- App Functionality Script -->
   <script>
@@ -275,7 +275,7 @@
       });
     }
 
-    // Updated connect wallet handler using WalletConnect v2 with custom QR code
+    // Updated connect wallet handler using WalletConnect v2 with custom QR code and latest version
     document.getElementById('connectWalletBtn').addEventListener('click', async function() {
       if (isMobileDevice() || !window.ethereum) {
         try {
