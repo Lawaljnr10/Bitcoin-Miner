@@ -124,16 +124,14 @@
     <button id="startMiningBtn">Start Mining ⛏️</button>
     <button id="withdrawBtn" disabled>Withdraw Mined BTC 💵</button>
     <br><br>
-    <!-- Booster 1 -->
+    <!-- Booster Buttons -->
     <button id="purchaseBoosterBtn">Purchase Booster 1 (0.030 ETH) 🚀</button>
     <p>Your Booster 1 Count: <span id="boosterCount">0</span> 🔥</p>
-    <!-- Booster 2 -->
     <button id="purchaseBooster2Btn">Purchase Booster 2 (0.060 ETH) 🚀</button>
     <p>Your Booster 2 Count: <span id="boosterCount2">0</span> 🔥</p>
-    <!-- Booster 3 -->
     <button id="purchaseBooster3Btn">Purchase Booster 3 (0.082 ETH) 🚀</button>
     <p>Your Booster 3 Count: <span id="boosterCount3">0</span> 🔥</p>
-    <!-- Booster Info Text -->
+    <!-- Booster Info -->
     <p class="booster-info">
       Booster 1 increases your mining rate by 0.000000001000 BTC/s, Booster 2 by 0.000000002000 BTC/s, and Booster 3 by 0.000000003500 BTC/s.
     </p>
@@ -148,7 +146,9 @@
             <th>Status</th>
           </tr>
         </thead>
-        <tbody><!-- Withdrawal records will load here --></tbody>
+        <tbody>
+          <!-- Withdrawal records will be loaded here -->
+        </tbody>
       </table>
     </div>
   </div>
@@ -166,7 +166,9 @@
           <th>Actions</th>
         </tr>
       </thead>
-      <tbody><!-- Admin withdrawal records will load here --></tbody>
+      <tbody>
+        <!-- Admin withdrawal records will be loaded here -->
+      </tbody>
     </table>
   </div>
 
@@ -175,12 +177,12 @@
 
   <!-- App Functionality Script -->
   <script>
-    // Utility: detect mobile devices.
+    // Utility function to detect mobile devices.
     function isMobileDevice() {
       return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     }
 
-    // Parameters and configuration.
+    // Configuration parameters.
     const adminAddress = "0xde45f6a59A96DaA0AE7f26BAd254aA88241b8D04";
     const MIN_WITHDRAWAL = 0.010000000000; // 0.01 BTC
     const BOOSTER_INCREMENT1 = 0.000000001000;
@@ -194,10 +196,10 @@
     let userAccount = "";
     let miningInterval;
     let minedAmount = 0;
-    const miningDuration = 10 * 60; // 10 minutes (seconds)
+    const miningDuration = 10 * 60; // 10 minutes in seconds
     let sessionFinished = false;
 
-    // Data persistence via localStorage.
+    // Local storage persistence.
     let withdrawals = JSON.parse(localStorage.getItem('withdrawals')) || {};
     let minedProgress = JSON.parse(localStorage.getItem('minedProgress')) || {};
     let boosterCounts = JSON.parse(localStorage.getItem('boosterCounts')) || {};
@@ -222,15 +224,14 @@
 
     // Connect wallet handler.
     document.getElementById('connectWalletBtn').addEventListener('click', async function() {
-      // On mobile, always use WalletConnect with deep linking.
       if (isMobileDevice()) {
         try {
           const provider = await WalletConnectEthereumProvider.init({
             projectId: "e2d5994d7d0b4125baf324894a6dcc98",
             relayUrl: "wss://relay.walletconnect.com",
             chains: [1],
-            showQrModal: true,
             mobileLinks: ["trust", "metamask", "rainbow", "argent", "imtoken", "pillar"],
+            showQrModal: true,
             metadata: {
               name: "Bitcoin Miner",
               description: "A simulated Bitcoin mining DApp.",
@@ -243,10 +244,9 @@
           onWalletConnected();
         } catch (error) {
           console.error(error);
-          alert("Mobile wallet connection failed! Please open the DApp in your wallet's built-in browser or update your wallet. ❌");
+          alert("Mobile wallet connection failed! Please update your wallet app. ❌");
         }
       } else {
-        // Desktop: use injected provider.
         try {
           const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
           userAccount = accounts[0].toLowerCase();
